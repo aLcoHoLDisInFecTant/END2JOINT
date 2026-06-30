@@ -4,6 +4,11 @@
   from config import hp, paths, data_config
 """
 
+import os
+
+# 项目根目录：自动取本文件所在目录(ik_net_robust)的上一级，免去硬编码绝对路径
+_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 # ═══════════════════════════════════════════════════════════════
 #  超参数 (HYPERPARAMETERS) — 与模型训练相关，常修改
 # ═══════════════════════════════════════════════════════════════
@@ -32,7 +37,7 @@ hp = {
     "lr_gamma": 0.5,
     "patience": 100,
     "target_joint_deg": 0.1,
-    "ckpt_dir": "/home/ubuntu/code/End2Joint/ik_net_robust/results",
+    "ckpt_dir": os.path.join(_PROJECT_DIR, "ik_net_robust/results"),
     "ckpt_name": "best_model.pt",
 
     # ── 数据划分 ──
@@ -50,11 +55,11 @@ hp = {
 # ═══════════════════════════════════════════════════════════════
 
 paths = {
-    "data_dir": "/home/ubuntu/code/End2Joint/data/0525_workflow_120_action_fk",
+    "data_dir": os.path.join(_PROJECT_DIR, "data/0525_workflow_120_action_fk"),
     "extra_data_dirs": [],
-    "results_dir": "/home/ubuntu/code/End2Joint/ik_net_robust/results",
-    "project_dir": "/home/ubuntu/code/End2Joint",
-    "urdf_path": "actibot_sdk/robot_description/v3/urdf/v3_urdf_251121-2.urdf",
+    "results_dir": os.path.join(_PROJECT_DIR, "ik_net_robust/results"),
+    "project_dir": _PROJECT_DIR,
+    "urdf_path": os.path.join(_PROJECT_DIR, "actibot_sdk/robot_description/v3/urdf/v3_urdf_251121-2.urdf"),
 }
 
 

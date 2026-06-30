@@ -4,6 +4,11 @@
   from config import hp, paths, data_config
 """
 
+import os
+
+# 项目根目录：自动取本文件所在目录(ik_net)的上一级，免去硬编码绝对路径
+_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 
 # ═══════════════════════════════════════════════════════════════
 #  超参数 (HYPERPARAMETERS) — 与模型训练相关，常修改
@@ -29,9 +34,8 @@ hp = {
     "lr_gamma": 0.5,            # 学习率衰减系数
     "patience": 100,             # 早停容忍轮数
     "target_joint_deg": 0.1,    # 目标关节角平均误差（度），达标即停
-    "ckpt_dir": "/home/ubuntu/code/End2Joint/ik_net/0616_end2action_model",  # 模型权重 + 归一化参数路径
-    #"ckpt_dir": "/home/ubuntu/code/End2Joint/ik_net/end2action_model",
-    "ckpt_name": "0616_model.pt", 
+    "ckpt_dir": os.path.join(_PROJECT_DIR, "ik_net/0629_groot85_model"),  # 模型权重 + 归一化参数路径
+    "ckpt_name": "0629_model.pt",
 
     # ── 数据划分 ──
     "train_ratio": 0.8,
@@ -48,13 +52,13 @@ hp = {
 # ═══════════════════════════════════════════════════════════════
 
 paths = {
-    "data_dir": "/home/ubuntu/code/End2Joint/data/0525_workflow_120_action_fk",
+    "data_dir": os.path.join(_PROJECT_DIR, "data/0525_workflow_120_action_fk"),
     "extra_data_dirs": [
-        #"/home/ubuntu/code/End2Joint/data/my_dataset_groot_action_fk"
+        os.path.join(_PROJECT_DIR, "data/my_dataset_groot_action_fk")
         ],
-    "results_dir": "/home/ubuntu/code/End2Joint/ik_net/0616_end2action_model",
-    "project_dir": "/home/ubuntu/code/End2Joint",
-    "urdf_path": "actibot_sdk/robot_description/v3/urdf/v3_urdf_251121-2.urdf",
+    "results_dir": os.path.join(_PROJECT_DIR, "ik_net/0629_groot85_model"),
+    "project_dir": _PROJECT_DIR,
+    "urdf_path": os.path.join(_PROJECT_DIR, "actibot_sdk/robot_description/v3/urdf/v3_urdf_251121-2.urdf"),
 }
 
 
