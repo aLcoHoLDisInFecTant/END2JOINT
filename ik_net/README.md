@@ -48,12 +48,16 @@ ik_net/
 ├── config.py              # 超参数配置
 ├── dataloader.py          # 数据加载（双源：action FK + state FK）
 ├── model.py               # ResidualMLP 模型
-├── train.py               # 训练循环
+├── train.py               # 训练循环（含 run_stage 通用训练原语）
+├── train_joint.py         # 真实 + 操作包络合成 联合训练
 ├── evaluate.py            # 测试评估
 ├── predict.py             # 推理测试 + 保存预测结果
-├── predict_ar.py          # 自回归推理
-├── playback_predictions.py # ROS2 回放
 ├── fk_utils.py            # Pinocchio FK 封装
+├── models/                # 模型检查点
+│   ├── 0629_groot85_model/    # 基线（部署）
+│   ├── 0630_envelope_model/   # 操作包络联合训练候选
+│   └── archive/               # 历史检查点（0611/0616/0616_moredata）
+├── save_real/             # 真机验证日志
 ├── requirements.txt
 └── README.md
 ```

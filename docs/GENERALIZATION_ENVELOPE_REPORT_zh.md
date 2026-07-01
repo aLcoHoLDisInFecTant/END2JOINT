@@ -16,7 +16,7 @@
 
 **硬约束**：不得劣化当前 in-distribution 精度（held-out 真实 test，纯网络 ~1.12° / 8.6mm）。
 
-> 评测口径：全部沿用报告 §7.4.7 的 **model-only（IKNET-only，不含 fk_correction）+ gt-prev** round-trip。基线模型为已部署的 `0629_groot85`（`ik_net/0629_groot85_model/`）。在本仓库同一 8:1:1 划分（`seed=42`）下，基线纯网络 held-out test = **1.116° / 8.603mm**，ep000=13.5mm，ep001=44.3mm —— 与报告 §7.4.7 一致，确认评测可信。
+> 评测口径：全部沿用报告 §7.4.7 的 **model-only（IKNET-only，不含 fk_correction）+ gt-prev** round-trip。基线模型为已部署的 `0629_groot85`（`ik_net/models/0629_groot85_model/`）。在本仓库同一 8:1:1 划分（`seed=42`）下，基线纯网络 held-out test = **1.116° / 8.603mm**，ep000=13.5mm，ep001=44.3mm —— 与报告 §7.4.7 一致，确认评测可信。
 
 ---
 
@@ -195,16 +195,18 @@ held-out test episodes（全局 id）：`[1,14,20,52,71,74,87,92,99,102,103,106,
 | `example/make_synthetic_fullspace.py` | 合成生成器（`--mode envelope` 径向+定向远扩展；默认=最佳配置；`--mode uniform` 为对照） |
 | `data/synthetic_envelope_fk/` | 操作包络合成 2500×20=50k |
 | `ik_net/train_joint.py` | 联合训练（合成只进 train，纯真实 held-out 验证，real-only scaler） |
+| `ik_net/train.py` | 含 `run_stage`（按 val 关节 MAE 选最优的通用训练循环，供 train_joint 复用） |
 | `ik_net/dataloader.py` | 新增 `fit_scaler_on_dirs` / `collect_train_split_arrays`；`build_dataloaders` 支持 `extra_dirs`/`scaler` |
 | `ik_net/config.py` | `envelope_data_dir` / `joint_results_dir` 等 |
-| `ik_net/0630_envelope_model/` | `0630_model.pt` + `scaler.pkl` + `history.json`（候选部署模型） |
+| `ik_net/models/0630_envelope_model/` | `0630_model.pt` + `scaler.pkl` + `history.json`（候选部署模型） |
+| `ik_net/models/0629_groot85_model/` | 基线（部署）；`ik_net/models/archive/` 存历史检查点 |
 
-### 对照/失败方案残留（可清理）
+### 已清理的对照/失败方案残留（2026-07-01 整理）
 
-| 文件 | 说明 |
-|------|------|
-| `data/synthetic_fullspace_fk/`、`..._OLD_largestep_bak/` | 均匀全空间（已证伪） |
-| `ik_net/train_staged.py`、`ik_net/0630_synth_pretrain_model/` | 预训练→微调（灾难性遗忘，已证伪） |
+以下均匀全空间/staged 证伪方案已删除（git 历史仍可追溯）：
+`data/synthetic_fullspace_fk/`、`..._OLD_largestep_bak/`（均匀全空间，已证伪）；
+`ik_net/train_staged.py`、`ik_net/0630_synth_pretrain_model/`、`ik_net/0630_gr00t_model/`
+（预训练→微调，灾难性遗忘，已证伪）。其中 `train_staged.py` 的 `run_stage` 已抽入 `ik_net/train.py`。
 
 ### 复现命令（项目 venv，清空 ROS `PYTHONPATH`）
 
@@ -215,7 +217,7 @@ env -u PYTHONPATH python3 example/make_synthetic_fullspace.py --mode envelope \
 
 # 2) 联合训练（合成只进 train，纯真实 held-out 验证）
 env -u PYTHONPATH python3 ik_net/train_joint.py
-# -> ik_net/0630_envelope_model/{0630_model.pt, scaler.pkl, history.json}
+# -> ik_net/models/0630_envelope_model/{0630_model.pt, scaler.pkl, history.json}
 
 # 3) OOD 离线验证（报告 §7.4.7 同口径，model-only / gt-prev）
 #    对 /home/ubuntu/Desktop/Fii/Data/IK_test_data/transformed 的 ep000/ep001

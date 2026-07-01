@@ -30,13 +30,12 @@ for p in [_example_dir, _project_dir]:
     if p not in sys.path:
         sys.path.insert(0, p)
 
-from config import hp, paths, staged
+from config import hp, paths
 from dataloader import (build_dataloaders, fit_scaler_on_dirs,
                         collect_train_split_arrays, IKDataset)
 from model import ResidualMLP
 from fk_utils import load_ik
-from train import set_seed
-from train_staged import run_stage   # 复用按 val 关节 MAE 选最优的训练循环
+from train import set_seed, run_stage   # run_stage: 按 val 关节 MAE 选最优的训练循环
 
 
 def main():
@@ -80,7 +79,7 @@ def main():
     # ── 保存 + 真实 held-out test 评估 ──
     from train import evaluate
     torch.save({"model_state_dict": model.state_dict()},
-               os.path.join(results_dir, staged["ckpt_name"]))
+               os.path.join(results_dir, hp["joint_ckpt_name"]))
     with open(os.path.join(results_dir, "scaler.pkl"), "wb") as f:
         pickle.dump(scaler, f)
 

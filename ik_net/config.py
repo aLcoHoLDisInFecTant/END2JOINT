@@ -34,8 +34,9 @@ hp = {
     "lr_gamma": 0.5,            # 学习率衰减系数
     "patience": 100,             # 早停容忍轮数
     "target_joint_deg": 0.1,    # 目标关节角平均误差（度），达标即停
-    "ckpt_dir": os.path.join(_PROJECT_DIR, "ik_net/0629_groot85_model"),  # 模型权重 + 归一化参数路径
+    "ckpt_dir": os.path.join(_PROJECT_DIR, "ik_net/models/0629_groot85_model"),  # 模型权重 + 归一化参数路径
     "ckpt_name": "0629_model.pt",
+    "joint_ckpt_name": "0630_model.pt",   # train_joint.py 联合训练输出的检查点名
 
     # ── 数据划分 ──
     "train_ratio": 0.8,
@@ -56,37 +57,12 @@ paths = {
     "extra_data_dirs": [
         os.path.join(_PROJECT_DIR, "data/my_dataset_groot_action_fk")
         ],
-    # 均匀全空间合成（已证实对小 MLP 适得其反，保留作对照）
-    "synthetic_data_dir": os.path.join(_PROJECT_DIR, "data/synthetic_fullspace_fk"),
     # 操作包络合成（径向扩展真实流形外缘，覆盖 ep001 类 OOD；供 train_joint.py）
     "envelope_data_dir": os.path.join(_PROJECT_DIR, "data/synthetic_envelope_fk"),
-    "results_dir": os.path.join(_PROJECT_DIR, "ik_net/0629_groot85_model"),
-    "staged_results_dir": os.path.join(_PROJECT_DIR, "ik_net/0630_synth_pretrain_model"),
-    "joint_results_dir": os.path.join(_PROJECT_DIR, "ik_net/0630_envelope_model"),
+    "results_dir": os.path.join(_PROJECT_DIR, "ik_net/models/0629_groot85_model"),
+    "joint_results_dir": os.path.join(_PROJECT_DIR, "ik_net/models/0630_envelope_model"),
     "project_dir": _PROJECT_DIR,
     "urdf_path": os.path.join(_PROJECT_DIR, "actibot_sdk/robot_description/v3/urdf/v3_urdf_251121-2.urdf"),
-}
-
-
-# ═══════════════════════════════════════════════════════════════
-#  两阶段训练超参 (STAGED: 合成预训练 → 真实微调)
-# ═══════════════════════════════════════════════════════════════
-
-staged = {
-    # scaler 在「真实 train」上拟合（与部署/基线一致，保留任务区分辨率）；
-    # 合成预训练复用同一冻结 scaler（其全空间输入会落在较大归一化幅度，可学）。
-    "pretrain_epochs": 200,        # Stage A: 合成全空间预训练
-    "pretrain_lr": 1e-3,
-    "pretrain_lr_step": 50,
-    "pretrain_lr_gamma": 0.5,
-    "pretrain_patience": 30,       # 以合成 val 关节 MAE 早停
-
-    "finetune_epochs": 4000,       # Stage B: 真实任务微调
-    "finetune_lr": 5e-4,           # 足以恢复 in-distribution 精度，又不至于抹掉基座
-    "finetune_lr_step": 150,       # 比单阶段更缓的衰减，避免 lr 过早归零（上轮 1.18° 卡死的主因）
-    "finetune_lr_gamma": 0.5,
-    "finetune_patience": 200,      # 以真实 val 关节 MAE 早停
-    "ckpt_name": "0630_model.pt",
 }
 
 

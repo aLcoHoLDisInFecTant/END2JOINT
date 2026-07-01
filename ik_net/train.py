@@ -12,6 +12,7 @@ import os
 import sys
 import time
 import json
+import copy
 import pickle
 import numpy as np
 import matplotlib
@@ -108,6 +109,57 @@ def train_epoch(loader, model, optimizer, criterion, device, scaler):
         total_loss += loss.item() * X_batch.size(0)
         n += X_batch.size(0)
     return total_loss / max(n, 1)
+
+
+def run_stage(name, train_loader, val_loader, model, scaler, ik, device,
+              epochs, lr, patience, target_deg, lr_step, lr_gamma):
+    """训练一个阶段，按 val 关节 MAE 选最优。返回 (best_state_dict, history)。
+
+    供联合训练 (train_joint.py) 复用的通用训练循环：AdamW + StepLR，
+    以「val 关节 MAE」早停/选优，达 target_deg 即停。
+    """
+    optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=hp["weight_decay"])
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=lr_step, gamma=lr_gamma)
+    criterion = nn.MSELoss()
+
+    best_deg, best_epoch, best_state = float("inf"), -1, None
+    train_hist, val_hist, deg_hist, patience_ctr = [], [], [], 0
+
+    print(f"\n========== Stage [{name}]  epochs={epochs} lr={lr} ==========")
+    print(f"{'Epoch':>6} | {'Train':>10} | {'Val':>10} | {'Joint(°)':>8} | {'FK Pos(mm)':>10} | Time")
+    print("-" * 70)
+
+    for epoch in range(1, epochs + 1):
+        t0 = time.time()
+        tr = train_epoch(train_loader, model, optimizer, criterion, device, scaler)
+        val = evaluate(val_loader, model, scaler, device, ik=ik)
+        deg = val.get("joint_mae_deg", 0.0)
+        fk_pos = val.get("fk_pos_err_mean", 0.0) * 1000
+        train_hist.append(tr); val_hist.append(val["loss"]); deg_hist.append(deg)
+        print(f"{epoch:>6d} | {tr:>10.6f} | {val['loss']:>10.6f} | {deg:>8.3f} | {fk_pos:>10.3f} | {time.time()-t0:.1f}s")
+
+        improved = deg < best_deg
+        if improved:
+            best_deg, best_epoch = deg, epoch
+            best_state = copy.deepcopy(model.state_dict())
+            patience_ctr = 0
+        else:
+            patience_ctr += 1
+
+        if deg < target_deg:
+            print(f"  ✓ [{name}] 达到目标精度 {deg:.3f}° < {target_deg}°")
+            break
+        scheduler.step()
+        if patience_ctr >= patience:
+            print(f"  Early stopping [{name}] at epoch {epoch} (no improve {patience})")
+            break
+
+    print(f"  [{name}] best: epoch {best_epoch}, joint MAE = {best_deg:.3f}°")
+    if best_state is not None:
+        model.load_state_dict(best_state)
+    history = {"train_loss": train_hist, "val_loss": val_hist, "joint_deg": deg_hist,
+               "best_epoch": best_epoch, "best_joint_deg": best_deg}
+    return best_state, history
 
 
 def main():

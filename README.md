@@ -17,17 +17,19 @@ End2Joint/
 │   ├── compute_fk_batch.py           # 基于 observation.state 的 FK
 │   ├── compute_fk_action.py          # 基于 action 的 FK（推荐，输出 45 列）
 │   └── README.md
-├── docs/                 # 文档
+├── docs/                 # 文档（报告、实验计划书、环境配置等）
 ├── ik_net/               # 标准 IK 网络
 │   ├── config.py                     # 超参数配置
 │   ├── dataloader.py                 # 数据加载（单文件 ee + state + action）
 │   ├── model.py                      # ResidualMLP 模型
-│   ├── train.py                      # 训练循环
+│   ├── train.py                      # 训练循环（含 run_stage 通用训练原语）
+│   ├── train_joint.py                # 真实 + 操作包络合成 联合训练
 │   ├── evaluate.py                   # 测试评估
 │   ├── predict.py                    # 推理 + 保存结果
-│   ├── predict_ar.py                 # 自回归推理
-│   ├── analyze_real_error.py         # 真机验证数据分析
-│   ├── playback_predictions.py       # ROS2 回放
+│   ├── models/                       # 模型检查点
+│   │   ├── 0629_groot85_model/       # 基线（部署）
+│   │   ├── 0630_envelope_model/      # 操作包络联合训练候选
+│   │   └── archive/                  # 历史检查点（0611/0616/0616_moredata）
 │   └── save_real/                    # 真机验证日志
 ├── ik_net_robust/        # 改进版：噪声注入 + FK 修正
 │   ├── config.py                     # 超参数配置
