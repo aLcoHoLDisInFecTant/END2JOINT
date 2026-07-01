@@ -81,24 +81,66 @@ class IKDataset(Dataset):
     def __getitem__(self, idx): return self.X[idx], self.y[idx]
 
 
-def build_dataloaders(data_dir):
-    """从单目录加载数据（每文件含 ee + state + action）。"""
+def _load_merged_episodes(data_dir, extra_dirs):
+    """加载主目录 + 额外目录，重编号避免 episode id 冲突。"""
     episodes = load_episode_files(data_dir)
-
-    from config import paths
-    extra_dirs = paths.get("extra_data_dirs", [])
     if extra_dirs:
-        ep_offset = max(episodes.keys()) + 1
         for edir in extra_dirs:
+            ep_offset = max(episodes.keys()) + 1
             for ep_idx, df in load_episode_files(edir).items():
                 episodes[ep_offset + ep_idx] = df
+    return episodes
+
+
+def collect_train_split_arrays(data_dir, extra_dirs=None):
+    """返回某数据源（主 + 额外）train 划分的 (X, y)，用于在并集上拟合 scaler。
+
+    划分逻辑与 build_dataloaders 完全一致（同 seed、同比例），保证「拟合 scaler
+    用的 train 子集」与「实际训练用的 train 子集」一一对应、无泄漏。
+    """
+    episodes = _load_merged_episodes(data_dir, extra_dirs or [])
+    train_eps, _, _ = split_episodes(episodes)
+    return episodes_to_arrays(episodes, train_eps)
+
+
+def fit_scaler_on_dirs(sources):
+    """在多个数据源 train 划分的并集上拟合一个共享 Scaler。
+
+    sources: list[(data_dir, extra_dirs)]，例如
+        [(real_dir, [extra_real]), (synthetic_dir, [])]
+    用于两阶段训练：scaler 必须覆盖全空间（含合成数据），并在预训练/微调
+    全程冻结复用，否则预训练权重的输入归一化在微调时失效。
+    """
+    Xs, ys = [], []
+    for data_dir, extra_dirs in sources:
+        X, y = collect_train_split_arrays(data_dir, extra_dirs)
+        Xs.append(X)
+        ys.append(y)
+    return Scaler().fit(np.vstack(Xs), np.vstack(ys))
+
+
+def build_dataloaders(data_dir, extra_dirs=None, scaler=None):
+    """从目录加载数据（每文件含 ee + state + action）。
+
+    extra_dirs: 额外数据目录列表；None 时回退到 config.paths["extra_data_dirs"]
+                （保持旧 train.py 行为不变）。传 [] 可显式禁用额外数据。
+    scaler:     传入则跳过拟合、直接复用（两阶段共享冻结 scaler）；None 时在
+                本数据源 train 划分上拟合。
+    """
+    if extra_dirs is None:
+        from config import paths
+        extra_dirs = paths.get("extra_data_dirs", [])
+
+    episodes = _load_merged_episodes(data_dir, extra_dirs)
+    if extra_dirs:
         print(f"  合并额外数据: {sum(1 for d in extra_dirs for _ in load_episode_files(d))} episodes")
 
     train_eps, val_eps, test_eps = split_episodes(episodes)
     X_train, y_train = episodes_to_arrays(episodes, train_eps)
     X_val, y_val = episodes_to_arrays(episodes, val_eps)
     X_test, y_test = episodes_to_arrays(episodes, test_eps)
-    scaler = Scaler().fit(X_train, y_train)
+    if scaler is None:
+        scaler = Scaler().fit(X_train, y_train)
 
     def make_loader(X, y, shuffle):
         ds = IKDataset(scaler.transform_X(X), scaler.transform_y(y))
